@@ -420,6 +420,7 @@ public class RewriteFilter implements Filter {
                                         response.sendRedirect("/" + destinyRequest);
                                     } else {
                                         //response.sendRedirect("/" + requestURI);
+                                        return true;
                                     }
                                     return false;
                                 }
