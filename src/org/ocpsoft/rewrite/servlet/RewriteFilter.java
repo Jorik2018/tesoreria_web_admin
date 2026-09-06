@@ -391,8 +391,11 @@ public class RewriteFilter implements Filter {
                         String destinyRequest = req.getParameter("destiny");
                         if (user != null && !contextPath.equals("")) {// verificar master session valida (mejorar usando
                             String jwtToken = (String) session.getAttribute("jwtToken");
+                            System.out.println(traceId + " 8 jwtToken=" + jwtToken + " requestURI=" + requestURI);
                             Integer uid = getUidFromJwt((String)request.getAttribute(jwtToken));// api/auth)
                             if (uid == null || uid <= 0) {
+                                System.out.println(traceId + " 9 juid=" + uid);
+                            
                                 ((UserFacadeLocal) (new InitialContext()).lookup("java:module/UserFacade")).logout();
                                 response.sendRedirect("/" + requestURI);
                                 return false;
@@ -431,8 +434,7 @@ public class RewriteFilter implements Filter {
                             return false;
                         }
 
-                        if (requestURI.equals("login")
-                                && redirectToSlave(
+                        if (requestURI.equals("login") && redirectToSlave(
                                         request,
                                         response,
                                         destinyRequest,
@@ -442,7 +444,7 @@ public class RewriteFilter implements Filter {
                         if (destinyRequest != null) {
                             session.setAttribute("_DESTINY", destinyRequest);
                         }
-                        if (req.getAttribute("noload") != null) {
+                        if (request.getAttribute("noload") != null) {
                             System.out.println("no load");
                             return true;
                         }
