@@ -439,7 +439,7 @@ public class RewriteFilter implements Filter {
                                 response.sendRedirect(
                                         "/login/?destiny=" + destinyRequest);
                             } else {
-                                response.sendRedirect("/login");
+                                response.sendRedirect("/login/");
                             }
                             return false;
                         }
@@ -542,7 +542,7 @@ public class RewriteFilter implements Filter {
                         }
                     }
                     session.setAttribute("_DESTINY", requestURI);
-                    response.sendRedirect("/login?destiny=" + requestURI);
+                    response.sendRedirect("/login/?destiny=" + requestURI);
                     return false;
                 }
             }
