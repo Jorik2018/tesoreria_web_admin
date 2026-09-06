@@ -450,6 +450,8 @@ public class RewriteFilter implements Filter {
                         // los esclavos empiezan con ejemplo:/admin/warrant/*
                         if (requestURI.startsWith("admin") || requestURI.startsWith("faces/")) {
                             String access_token = (String) session.getAttribute("jwtToken");
+                            System.out.println("traceId=" + traceId + " access_token=" + access_token + " user=" + user
+                                    + " checkedAccess=" + req.getAttribute("-checkedAccess"));
                             if (access_token != null) {
                                 Object modal = req.getParameter("modal");
                                 if (modal != null)
