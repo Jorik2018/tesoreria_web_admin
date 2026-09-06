@@ -380,101 +380,95 @@ public class RewriteFilter implements Filter {
                     }
                 }
 
-                System.out.println(traceId + " 7 " + user + " req.getAttribute(X.NO_LOAD)  =>"
-                        + request.getAttribute(X.NO_LOAD) + " requestURI=" + requestURI);
-
-                if (user != null
-                        || jwtRefreshToken != null
-                        || requestURI.startsWith("login")
-                        || requestURI.endsWith("/register")
-                        || requestURI.startsWith("user/reset/")
-                        || requestURI.endsWith("/password")
-                        || !requestURI.startsWith("admin")) {
-                    {
-                        X.DEBUG = true;
-                        String destinyRequest = req.getParameter("destiny");
-                        boolean useModal = req.getParameter("modal") != null;
-                        if (user != null && !contextPath.equals("")) {// Verificar session global
-                            Integer uid = null;
-                            if (!XUtil.isEmpty(jwtRefreshToken)) {
-                                String jwtToken = refreshAccessToken(request, jwtRefreshToken);
-                                uid = getUidFromJwt(jwtToken);
-                            }
-                            if (uid == null || uid <= 0) {
-                                ((UserFacadeLocal) (new InitialContext()).lookup("java:module/UserFacade")).logout();
-                                response.sendRedirect("/" + requestURI);
-                                return false;
-                            }
-                        }
-
-                        // Without user and with refreshToken, try to refresh access token
-                        if (!(user != null && user.getUid() > 0) && !XUtil.isEmpty(jwtRefreshToken)) {
-                            String jwtToken = refreshAccessToken(request, jwtRefreshToken);
-                            User loggedUser = null;
-
-                            if (!XUtil.isEmpty(jwtToken)) {
-                                loggedUser = initSessionFromJwt(jwtToken);
-                            }
-
-                            if (loggedUser != null) {
-                                if (!XUtil.isEmpty(destinyRequest)) {
-                                    response.sendRedirect("/" + destinyRequest);
-                                    return false;
-                                }
-
-                                // Login correcto y sin destiny:
-                                // continúa el flujo después de este bloque
-                            } else {
-                                // Mostrar mensaje de error de login
-                                if (!XUtil.isEmpty(destinyRequest)) {
-                                    response.sendRedirect("/login/?destiny=" + destinyRequest);
-                                } else {
-                                    response.sendRedirect("/login/");
-                                }
-                                return false;
-                            }
-                        }
-
-                        if (request.getAttribute("noload") != null) {
-                            return true;
-                        }
-
-                        // los esclavos empiezan con ejemplo:/admin/warrant/*
-                        if (requestURI.startsWith("admin") || requestURI.startsWith("faces/")) {
-                            String access_token = (String) request.getSession().getAttribute("jwtToken");
-                            System.out.println("traceId=" + traceId + " access_token=" + access_token + " user=" + user
-                                    + " checkedAccess=" + req.getAttribute("-checkedAccess"));
-                            if (req.getAttribute("-checkedAccess") == null) {// verificar si tiene accesso a pagina
-                                Object o = null;
-                                try {
-
-                                    System.out.println("traceId=" + traceId + " loadingMENU=");
-                                    o = ((MenuFacadeLocal) (new InitialContext()).lookup("java:module/MenuFacade"))
-                                            .accessMenu(q);
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                                if (o instanceof Exception) {
-                                    ((Exception) o).printStackTrace();
-                                    request.setAttribute("MSG", ((Exception) o).getMessage());
-                                    req.setAttribute("noload", true);
-                                    request.getRequestDispatcher("/faces/common/Page.xhtml").forward(req, res);
-                                }
-                                req.setAttribute("-checkedAccess", true);
-                            }
-                        } else if (requestURI.endsWith(".xhtml")) {
-                            req.setAttribute("noload", true);
-                        } else {
-                            req.setAttribute("-checkedAccess", true);
-                        }
-                    }
+                String destinyRequest = req.getParameter("destiny");
+                boolean useModal = req.getParameter("modal") != null;
+                boolean isLoged = user != null && user.getUid() > 0;
+                if (!isLoged && XUtil.isEmpty(jwtRefreshToken)) {
+                    redirectToLogin(response, destinyRequest);
+                    return false;
                 }
+
+                X.DEBUG = true;
+
+                String jwtToken = !XUtil.isEmpty(jwtRefreshToken)
+                        ? refreshAccessToken(request, jwtRefreshToken)
+                        : null;
+
+                if (isLoged) {
+                    Integer uid = getUidFromJwt(jwtToken);
+
+                    if (uid == null || uid <= 0) {
+                        ((UserFacadeLocal) new InitialContext()
+                                .lookup("java:module/UserFacade"))
+                                .logout();
+
+                        response.sendRedirect("/" + requestURI);
+                        return false;
+                    }
+                } else {
+                    User loggedUser = !XUtil.isEmpty(jwtToken)
+                            ? initSessionFromJwt(jwtToken)
+                            : null;
+
+                    if (loggedUser == null) {
+                        redirectToLogin(response, destinyRequest);
+                        return false;
+                    }
+
+                    if (!XUtil.isEmpty(destinyRequest)) {
+                        response.sendRedirect("/" + destinyRequest);
+                        return false;
+                    }
+
+                    // Login correcto y sin destiny:
+                    // continúa el flujo
+                }
+                if (request.getAttribute("noload") != null) {
+                    return true;
+                }
+
+                // check access page and menu
+                if (requestURI.startsWith("admin") || requestURI.startsWith("faces/")) {
+                    String access_token = (String) request.getSession().getAttribute("jwtToken");
+                    if (req.getAttribute("-checkedAccess") == null) {// verificar si tiene accesso a pagina
+                        Object o = null;
+                        try {
+                            o = ((MenuFacadeLocal) (new InitialContext()).lookup("java:module/MenuFacade"))
+                                    .accessMenu(q);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        if (o instanceof Exception) {
+                            ((Exception) o).printStackTrace();
+                            request.setAttribute("MSG", ((Exception) o).getMessage());
+                            req.setAttribute("noload", true);
+                            request.getRequestDispatcher("/faces/common/Page.xhtml").forward(req, res);
+                        }
+                        req.setAttribute("-checkedAccess", true);
+                    }
+                } else if (requestURI.endsWith(".xhtml")) {
+                    req.setAttribute("noload", true);
+                } else {
+                    req.setAttribute("-checkedAccess", true);
+                }
+
             }
         } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
         return true;
+    }
+
+    private void redirectToLogin(
+            HttpServletResponse response,
+            String destinyRequest) throws IOException {
+
+        if (!XUtil.isEmpty(destinyRequest)) {
+            response.sendRedirect("/login/?destiny=" + destinyRequest);
+        } else {
+            response.sendRedirect("/login/");
+        }
     }
 
     private String refreshAccessToken(
