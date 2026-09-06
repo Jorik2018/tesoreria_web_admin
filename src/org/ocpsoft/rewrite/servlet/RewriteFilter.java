@@ -406,7 +406,7 @@ public class RewriteFilter implements Filter {
                             String jwtToken = refreshAccessToken(request, jwtRefreshToken);
                             System.out.println("======traceId=" + traceId + " jwtToken = " + jwtToken);
                             if (!XUtil.isEmpty(jwtToken)) {
-                                request.setAttribute("jwtToken", jwtToken);
+                                request.getSession().setAttribute("jwtToken", jwtToken);
                                 User loggedUser = initSessionFromJwt(jwtToken);
                                 System.err.println("======traceId=" + traceId + " loggedUser = " + loggedUser);
                                 if (loggedUser != null) {
@@ -620,33 +620,7 @@ public class RewriteFilter implements Filter {
                 || user.getUid().intValue() <= 0) {
             return false;
         }
-
-        String masterSessionId = request.getSession().getId();
-
-        String ip = X.toText(
-                X.getClientIpAddr(request)).replace(".", "");
-
-        String accessToken = ip + ".0." + masterSessionId;
-
-        Cookie cookie = new Cookie(
-                "MASTER_SESSION_ID",
-                masterSessionId);
-
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setMaxAge(60);
-
-        response.addCookie(cookie);
-
-        System.out.println(
-                "MASTER -> DESTINY "
-                        + destinyRequest
-                        + " session=" + masterSessionId);
-
-        response.sendRedirect(
-                "/" + destinyRequest
-                        + "?access_token=" + accessToken);
+        response.sendRedirect("/" + destinyRequest);
 
         return true;
     }
