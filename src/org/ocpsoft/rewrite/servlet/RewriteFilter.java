@@ -455,13 +455,13 @@ public class RewriteFilter implements Filter {
                                 if (modal != null)
                                     requestURI = requestURI + "?modal";
                                 if (user == null) {
-                                    Object uid = req.getParameter("uid");
+                                    /*Object uid = req.getParameter("uid");
                                     if (uid == null) {
                                         ((UserFacadeLocal) (new InitialContext()).lookup("java:module/UserFacade"))
                                                 .initSession(Integer.valueOf(XUtil.intValue(access_token)));
                                         response.sendRedirect("/" + requestURI);
                                         return false;
-                                    }
+                                    }*/
                                 }
                                 //response.sendRedirect("/" + requestURI);
                                 return true;
