@@ -393,7 +393,7 @@ public class RewriteFilter implements Filter {
                         if (user != null && !contextPath.equals("")) {// verificar master session valida (mejorar usando
                             String jwtToken = (String) session.getAttribute("jwtToken");
                             System.out.println(traceId + " 8 useModal="+useModal+" jwtToken=" + jwtToken + " requestURI=" + requestURI);
-                            Integer uid = getUidFromJwt((String)request.getAttribute(jwtToken));// api/auth)
+                            Integer uid = getUidFromJwt(jwtToken);// api/auth)
                             if (uid == null || uid <= 0) {
                                 System.out.println(traceId + " 9 juid=" + uid);
                             
@@ -406,10 +406,13 @@ public class RewriteFilter implements Filter {
                             String jwtToken = refreshAccessToken(request, jwtRefreshToken);
                             if (!XUtil.isEmpty(jwtToken)) {
 
-                                session.setAttribute("jwtToken", jwtToken);
+                                
                                 User loggedUser = initSessionFromJwt(jwtToken);
-                                System.err.println("======traceId=" + traceId + " jwt saved - user==null and refreshtoken exists loggedUser = " + loggedUser+" destinyRequest=" + destinyRequest);
+                                System.err.println("======traceId=" + traceId + " Z1000 user== and refreshtoken exists loggedUser = " + loggedUser+" destinyRequest=" + destinyRequest);
                                 if (loggedUser != null) {
+                                    session.setAttribute("jwtToken", jwtToken);
+                                    System.err.println("======traceId=" + traceId + " Z1001 jwt saved - user== and refreshtoken exists requestURI = " + requestURI+" useModal=" + useModal);
+                                
                                     if (!XUtil.isEmpty(destinyRequest)) {
                                         if (redirectToSlave(
                                                 request,
