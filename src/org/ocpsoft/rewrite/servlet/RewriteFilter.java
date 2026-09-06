@@ -320,9 +320,6 @@ public class RewriteFilter implements Filter {
                 request.setAttribute("_MSG", session.getAttribute("_MSG"));
                 session.removeAttribute("_MSG");
                 User user = (User) session.getAttribute("_USER");
-                System.out
-                        .println(traceId + " 6 " + user + " req.getAttribute(X.NO_LOAD)  =>"
-                                + request.getAttribute(X.NO_LOAD));
                 if (("logout".equals(q[0]))) {
                     ((UserFacadeLocal) (new InitialContext()).lookup("java:module/UserFacade")).logout();
                     Cookie refreshCookie = new Cookie("refreshToken", "");
@@ -375,8 +372,7 @@ public class RewriteFilter implements Filter {
                     if (request.getParameter("modal") != null) {
                         request.setAttribute(X.TEMPLATE, "/modal.xhtml");
                     } else {
-                        request.setAttribute(X.TEMPLATE, (q.length > 0 && "admin"
-                                .equals(q[0])) ? DEFAULT_TEMPLATE : "/nodeTemplate.xhtml");
+                        request.setAttribute(X.TEMPLATE, ("admin".equals(q[0])) ? DEFAULT_TEMPLATE : "/nodeTemplate.xhtml");
                     }
                 }
                 System.out.println(traceId + " 7 " + user + " req.getAttribute(X.NO_LOAD)  =>"
@@ -453,7 +449,7 @@ public class RewriteFilter implements Filter {
 
                         // los esclavos empiezan con ejemplo:/admin/warrant/*
                         if (requestURI.startsWith("admin") || requestURI.startsWith("faces/")) {
-                            String access_token = req.getParameter("access_token");
+                            String access_token = (String) session.getAttribute("jwtToken");
                             if (access_token != null) {
                                 Object modal = req.getParameter("modal");
                                 if (modal != null)
