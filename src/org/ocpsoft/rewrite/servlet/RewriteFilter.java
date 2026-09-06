@@ -404,7 +404,6 @@ public class RewriteFilter implements Filter {
                         }
                         if (!(user != null && user.getUid() > 0) && !XUtil.isEmpty(jwtRefreshToken)) {// login master
                             String jwtToken = refreshAccessToken(request, jwtRefreshToken);
-                            System.out.println("======traceId=" + traceId + " jwtToken = " + jwtToken);
                             if (!XUtil.isEmpty(jwtToken)) {
                                 request.getSession().setAttribute("jwtToken", jwtToken);
                                 User loggedUser = initSessionFromJwt(jwtToken);
