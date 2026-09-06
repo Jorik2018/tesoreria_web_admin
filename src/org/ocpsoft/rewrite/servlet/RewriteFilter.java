@@ -389,9 +389,10 @@ public class RewriteFilter implements Filter {
                     {
                         X.DEBUG = true;
                         String destinyRequest = req.getParameter("destiny");
+                        boolean useModal = req.getParameter("modal")!=null;
                         if (user != null && !contextPath.equals("")) {// verificar master session valida (mejorar usando
                             String jwtToken = (String) session.getAttribute("jwtToken");
-                            System.out.println(traceId + " 8 jwtToken=" + jwtToken + " requestURI=" + requestURI);
+                            System.out.println(traceId + " 8 useModal="+useModal+" jwtToken=" + jwtToken + " requestURI=" + requestURI);
                             Integer uid = getUidFromJwt((String)request.getAttribute(jwtToken));// api/auth)
                             if (uid == null || uid <= 0) {
                                 System.out.println(traceId + " 9 juid=" + uid);
@@ -406,7 +407,7 @@ public class RewriteFilter implements Filter {
                             if (!XUtil.isEmpty(jwtToken)) {
                                 request.getSession().setAttribute("jwtToken", jwtToken);
                                 User loggedUser = initSessionFromJwt(jwtToken);
-                                System.err.println("======traceId=" + traceId + " loggedUser = " + loggedUser+" destinyRequest=" + destinyRequest);
+                                System.err.println("======traceId=" + traceId + " user==null and refreshtoken exists loggedUser = " + loggedUser+" destinyRequest=" + destinyRequest);
                                 if (loggedUser != null) {
                                     if (!XUtil.isEmpty(destinyRequest)) {
                                         if (redirectToSlave(
