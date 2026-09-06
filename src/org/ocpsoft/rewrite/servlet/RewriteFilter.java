@@ -248,7 +248,7 @@ public class RewriteFilter implements Filter {
 
         try {
             response = client
-                    .target("http://localhost:5055/info")// api/auth
+                    .target("http://localhost/api/auth/info")// api/auth
                     .request("application/json")
                     .header("Authorization", "Bearer " + token)
                     .get();
@@ -362,7 +362,8 @@ public class RewriteFilter implements Filter {
                     }
                 }
                 if (requestURI.contains("/api/") || "api"
-                        .equals(q[0]) || (q.length > 1 && "api".equals(q[1]))) {
+                        .equals(q[0]) || (q.length > 1 && "api".equals(q[1]))) {// asegurar apis
+
                     response.addHeader("Access-Control-Allow-Origin", "*");
                     response.addHeader("Access-Control-Allow-Methods", "GET, OPTIONS, HEAD, PUT, POST");
                     chain.doFilter(request, (ServletResponse) response);
@@ -372,11 +373,12 @@ public class RewriteFilter implements Filter {
                     if (request.getParameter("modal") != null) {
                         request.setAttribute(X.TEMPLATE, "/modal.xhtml");
                     } else {
-                        request.setAttribute(X.TEMPLATE, ("admin".equals(q[0])) ? DEFAULT_TEMPLATE : "/nodeTemplate.xhtml");
+                        request.setAttribute(X.TEMPLATE,
+                                ("admin".equals(q[0])) ? DEFAULT_TEMPLATE : "/nodeTemplate.xhtml");
                     }
                 }
                 System.out.println(traceId + " 7 " + user + " req.getAttribute(X.NO_LOAD)  =>"
-                        + request.getAttribute(X.NO_LOAD)+" requestURI=" + requestURI);
+                        + request.getAttribute(X.NO_LOAD) + " requestURI=" + requestURI);
 
                 String jwtRefreshToken = getCookieValue(request, "refreshToken");
                 if (user != null
@@ -389,14 +391,14 @@ public class RewriteFilter implements Filter {
                     {
                         X.DEBUG = true;
                         String destinyRequest = req.getParameter("destiny");
-                        boolean useModal = req.getParameter("modal")!=null;
-                        if (user != null && !contextPath.equals("")) {// verificar master session valida (mejorar usando
-                            String jwtToken = (String) session.getAttribute("jwtToken");
-                            System.out.println(traceId + " 8 useModal="+useModal+" jwtToken=" + jwtToken + " requestURI=" + requestURI);
-                            Integer uid = getUidFromJwt(jwtToken);// api/auth)
+                        boolean useModal = req.getParameter("modal") != null;
+                        if (user != null && !contextPath.equals("")) {// Verificar session global
+                            Integer uid = null;
+                            if (!XUtil.isEmpty(jwtRefreshToken)) {
+                                String jwtToken = refreshAccessToken(request, jwtRefreshToken);
+                                uid = getUidFromJwt(jwtToken);
+                            }
                             if (uid == null || uid <= 0) {
-                                System.out.println(traceId + " 9 juid=" + uid);
-                            
                                 ((UserFacadeLocal) (new InitialContext()).lookup("java:module/UserFacade")).logout();
                                 response.sendRedirect("/" + requestURI);
                                 return false;
@@ -406,13 +408,16 @@ public class RewriteFilter implements Filter {
                             String jwtToken = refreshAccessToken(request, jwtRefreshToken);
                             if (!XUtil.isEmpty(jwtToken)) {
 
-                                
                                 User loggedUser = initSessionFromJwt(jwtToken);
-                                System.err.println("======traceId=" + traceId + " Z1000 user== and refreshtoken exists loggedUser = " + loggedUser+" destinyRequest=" + destinyRequest);
+                                System.err.println("======traceId=" + traceId
+                                        + " Z1000 user== and refreshtoken exists loggedUser = " + loggedUser
+                                        + " destinyRequest=" + destinyRequest);
                                 if (loggedUser != null) {
                                     request.getSession().setAttribute("jwtToken", jwtToken);
-                                    System.err.println("======traceId=" + traceId + " Z1001 jwt saved - user== and refreshtoken exists requestURI = " + requestURI+" useModal=" + useModal);
-                                
+                                    System.err.println("======traceId=" + traceId
+                                            + " Z1001 jwt saved - user== and refreshtoken exists requestURI = "
+                                            + requestURI + " useModal=" + useModal);
+
                                     if (!XUtil.isEmpty(destinyRequest)) {
                                         if (redirectToSlave(
                                                 request,
@@ -423,7 +428,7 @@ public class RewriteFilter implements Filter {
                                         }
                                         response.sendRedirect("/" + destinyRequest);
                                     } else {
-                                        //response.sendRedirect("/" + requestURI);
+                                        // response.sendRedirect("/" + requestURI);
                                         return true;
                                     }
                                     return false;
@@ -440,10 +445,10 @@ public class RewriteFilter implements Filter {
                         }
 
                         if (requestURI.equals("login") && redirectToSlave(
-                                        request,
-                                        response,
-                                        destinyRequest,
-                                        user)) {
+                                request,
+                                response,
+                                destinyRequest,
+                                user)) {
                             return false;
                         }
                         if (destinyRequest != null) {
@@ -464,15 +469,17 @@ public class RewriteFilter implements Filter {
                                 if (modal != null)
                                     requestURI = requestURI + "?modal";
                                 if (user == null) {
-                                    /*Object uid = req.getParameter("uid");
-                                    if (uid == null) {
-                                        ((UserFacadeLocal) (new InitialContext()).lookup("java:module/UserFacade"))
-                                                .initSession(Integer.valueOf(XUtil.intValue(access_token)));
-                                        response.sendRedirect("/" + requestURI);
-                                        return false;
-                                    }*/
+                                    /*
+                                     * Object uid = req.getParameter("uid");
+                                     * if (uid == null) {
+                                     * ((UserFacadeLocal) (new InitialContext()).lookup("java:module/UserFacade"))
+                                     * .initSession(Integer.valueOf(XUtil.intValue(access_token)));
+                                     * response.sendRedirect("/" + requestURI);
+                                     * return false;
+                                     * }
+                                     */
                                 }
-                                //response.sendRedirect("/" + requestURI);
+                                // response.sendRedirect("/" + requestURI);
                                 return true;
                             }
                             if (req.getAttribute("-checkedAccess") == null) {
