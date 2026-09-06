@@ -3,11 +3,12 @@ pipeline {
 
     environment {
         APP_NAME       = 'obresec_web_admin'
+        WAR_NAME = 'obresec_web_admin.war'
         WILDFLY_DEPLOY = 'C:\\wildfly-18.0.1.Final\\standalone\\deployments'
         WILDFLY_HOME   = 'C:\\wildfly-18.0.1.Final'
         PYTHON_HOME = 'C:\\Tools\\Python312'
         PYTHON_EXE = 'C:\\Tools\\Python312\\python.exe'
-        WAR_NAME = '${APP_NAME}.war'
+        
 
         TARGET_JAR =
             'rewrite-servlet-3.4.2.Final.jar'
@@ -60,6 +61,8 @@ pipeline {
 
                     echo.
                     echo ===== WAR ORIGINAL =====
+
+                    
 
                     if not exist "%WILDFLY_DEPLOY%\\%WAR_NAME%" (
                         echo ERROR: No existe:
