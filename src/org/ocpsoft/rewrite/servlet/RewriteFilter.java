@@ -379,6 +379,8 @@ public class RewriteFilter implements Filter {
                                 .equals(q[0])) ? DEFAULT_TEMPLATE : "/nodeTemplate.xhtml");
                     }
                 }
+                System.out.println(traceId + " 7 " + user + " req.getAttribute(X.NO_LOAD)  =>"
+                        + request.getAttribute(X.NO_LOAD)+" requestURI=" + requestURI);
 
                 String jwtRefreshToken = getCookieValue(request, "refreshToken");
                 if (user != null
