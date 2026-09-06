@@ -76,8 +76,6 @@ public class RewriteFilter implements Filter {
 
     private static final String CHECKED_ACCESS = "-checkedAccess";
 
-
-
     private static Logger log = Logger.getLogger(RewriteFilter.class);
 
     private static String FILTER_COUNT_KEY = RewriteFilter.class.getName() + "_FILTER_COUNT";
@@ -364,15 +362,6 @@ public class RewriteFilter implements Filter {
 
                 String jwtRefreshToken = getCookieValue(request, "refreshToken");
 
-                if (requestURI.contains("/api/") || "api"
-                        .equals(q[0]) || (q.length > 1 && "api".equals(q[1]))) {// asegurar apis
-
-                    response.addHeader("Access-Control-Allow-Origin", "*");
-                    response.addHeader("Access-Control-Allow-Methods", "GET, OPTIONS, HEAD, PUT, POST");
-                    chain.doFilter(request, (ServletResponse) response);
-                    return false;
-                }
-
                 if (request.getAttribute("TEMPLATE") == null) {
                     if (request.getParameter("modal") != null) {
                         request.setAttribute(X.TEMPLATE, "/modal.xhtml");
@@ -384,16 +373,27 @@ public class RewriteFilter implements Filter {
 
                 String destinyRequest = req.getParameter("destiny");
                 boolean useModal = req.getParameter("modal") != null;
-                boolean isLoged = user != null && user.getUid() > 0;
-                if (!isLoged && XUtil.isEmpty(jwtRefreshToken)) {
+                boolean isAuthenticated = user != null && user.getUid() > 0;
+                if (!isAuthenticated && XUtil.isEmpty(jwtRefreshToken)) {
                     redirectToLogin(response, requestURI, destinyRequest);
                     return false;
                 }
                 X.DEBUG = true;
+
                 String jwtToken = !XUtil.isEmpty(jwtRefreshToken)
                         ? refreshAccessToken(request, jwtRefreshToken)
                         : null;
-                if (isLoged) {
+
+                if (jwtToken!=null&&requestURI.contains("/api/") || "api"
+                        .equals(q[0]) || (q.length > 1 && "api".equals(q[1]))) {// asegurar apis
+
+                    response.addHeader("Access-Control-Allow-Origin", "*");
+                    response.addHeader("Access-Control-Allow-Methods", "GET, OPTIONS, HEAD, PUT, POST");
+                    chain.doFilter(request, (ServletResponse) response);
+                    return false;
+                }
+
+                if (isAuthenticated) {
                     Integer uid = getUidFromJwt(jwtToken);
 
                     if (uid == null || uid <= 0) {
