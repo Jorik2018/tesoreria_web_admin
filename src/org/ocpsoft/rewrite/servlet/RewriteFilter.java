@@ -74,7 +74,9 @@ import org.ocpsoft.rewrite.util.ServiceLogger;
 public class RewriteFilter implements Filter {
     private static String DEFAULT_TEMPLATE = "/template.xhtml";
 
-    private static String MASTER_SESSION_ID = "MAIN_TOKEN";
+    private static final String CHECKED_ACCESS = "-checkedAccess";
+
+
 
     private static Logger log = Logger.getLogger(RewriteFilter.class);
 
@@ -384,20 +386,13 @@ public class RewriteFilter implements Filter {
                 boolean useModal = req.getParameter("modal") != null;
                 boolean isLoged = user != null && user.getUid() > 0;
                 if (!isLoged && XUtil.isEmpty(jwtRefreshToken)) {
-                    redirectToLogin(response, requestURI,destinyRequest);
+                    redirectToLogin(response, requestURI, destinyRequest);
                     return false;
                 }
-
                 X.DEBUG = true;
-
                 String jwtToken = !XUtil.isEmpty(jwtRefreshToken)
                         ? refreshAccessToken(request, jwtRefreshToken)
                         : null;
-                System.out.println(
-                        "TRACE[" + traceId + "] requestURI=" + requestURI + " destinyRequest=" + destinyRequest
-                                + " isLoged=" + isLoged + " jwtRefreshToken=" + !XUtil.isEmpty(jwtRefreshToken)
-                                + " jwtToken=" + !XUtil.isEmpty(jwtToken));
-
                 if (isLoged) {
                     Integer uid = getUidFromJwt(jwtToken);
 
@@ -413,19 +408,14 @@ public class RewriteFilter implements Filter {
                     User loggedUser = !XUtil.isEmpty(jwtToken)
                             ? initSessionFromJwt(jwtToken)
                             : null;
-
                     if (loggedUser == null) {
-                        redirectToLogin(response, requestURI,destinyRequest);
+                        redirectToLogin(response, requestURI, destinyRequest);
                         return false;
                     }
-
                     if (!XUtil.isEmpty(destinyRequest)) {
                         response.sendRedirect("/" + destinyRequest);
                         return false;
                     }
-
-                    // Login correcto y sin destiny:
-                    // continúa el flujo
                 }
                 if (request.getAttribute("noload") != null) {
                     return true;
@@ -433,8 +423,7 @@ public class RewriteFilter implements Filter {
 
                 // check access page and menu
                 if (requestURI.startsWith("admin") || requestURI.startsWith("faces/")) {
-                    String access_token = (String) request.getSession().getAttribute("jwtToken");
-                    if (req.getAttribute("-checkedAccess") == null) {// verificar si tiene accesso a pagina
+                    if (req.getAttribute(CHECKED_ACCESS) == null) {// verificar si tiene accesso a pagina
                         Object o = null;
                         try {
                             o = ((MenuFacadeLocal) (new InitialContext()).lookup("java:module/MenuFacade"))
@@ -448,12 +437,12 @@ public class RewriteFilter implements Filter {
                             req.setAttribute("noload", true);
                             request.getRequestDispatcher("/faces/common/Page.xhtml").forward(req, res);
                         }
-                        req.setAttribute("-checkedAccess", true);
+                        req.setAttribute(CHECKED_ACCESS, true);
                     }
                 } else if (requestURI.endsWith(".xhtml")) {
                     req.setAttribute("noload", true);
                 } else {
-                    req.setAttribute("-checkedAccess", true);
+                    req.setAttribute(CHECKED_ACCESS, true);
                 }
 
             }

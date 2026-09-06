@@ -2,11 +2,12 @@ pipeline {
     agent any
 
     environment {
+        APP_NAME       = 'obresec_web_admin'
         WILDFLY_DEPLOY = 'C:\\wildfly-18.0.1.Final\\standalone\\deployments'
         WILDFLY_HOME   = 'C:\\wildfly-18.0.1.Final'
         PYTHON_HOME = 'C:\\Tools\\Python312'
         PYTHON_EXE = 'C:\\Tools\\Python312\\python.exe'
-        WAR_NAME = 'tesoreria_web_admin.war'
+        WAR_NAME = '${APP_NAME}.war'
 
         TARGET_JAR =
             'rewrite-servlet-3.4.2.Final.jar'
@@ -427,7 +428,7 @@ javac ^
 
                     copy /Y ^
                       "%WILDFLY_DEPLOY%\\%WAR_NAME%" ^
-                      "!BACKUP_DIR!\\tesoreria_web_admin_original.war"
+                      "!BACKUP_DIR!\\${APP_NAME}_original.war"
 
                     if errorlevel 1 (
                         echo ERROR: Fallo backup original
@@ -439,7 +440,7 @@ javac ^
 
                     copy /Y ^
                       "patched\\%WAR_NAME%" ^
-                      "!BACKUP_DIR!\\tesoreria_web_admin_patched.war"
+                      "!BACKUP_DIR!\\${APP_NAME}_patched.war"
 
                     if errorlevel 1 (
                         echo ERROR: Fallo backup patched
