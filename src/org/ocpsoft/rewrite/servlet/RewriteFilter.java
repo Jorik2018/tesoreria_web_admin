@@ -54,6 +54,7 @@ import org.ocpsoft.rewrite.config.ConfigurationProvider;
 import org.ocpsoft.rewrite.el.spi.ExpressionLanguageProvider;
 import org.ocpsoft.rewrite.event.Flow;
 import org.ocpsoft.rewrite.event.Rewrite;
+import org.ocpsoft.rewrite.servlet.ServletRewriteProvider;
 import org.ocpsoft.rewrite.servlet.event.BaseRewrite;
 import org.ocpsoft.rewrite.servlet.event.InboundServletRewrite;
 import org.ocpsoft.rewrite.servlet.impl.HttpRewriteContextImpl;
@@ -391,7 +392,8 @@ public class RewriteFilter implements Filter {
                         X.DEBUG = true;
                         String destinyRequest = req.getParameter("destiny");
                         if (user != null && !contextPath.equals("")) {// verificar master session valida (mejorar usando
-                            Integer uid = getUidFromJwt(request.getAttribute("jwtToken"));// api/auth)
+                            String jwtToken = (String) session.getAttribute("jwtToken");
+                            Integer uid = getUidFromJwt((String)request.getAttribute(jwtToken));// api/auth)
                             if (uid == null || uid <= 0) {
                                 ((UserFacadeLocal) (new InitialContext()).lookup("java:module/UserFacade")).logout();
                                 response.sendRedirect("/" + requestURI);
