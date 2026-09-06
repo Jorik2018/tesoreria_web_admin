@@ -405,9 +405,10 @@ public class RewriteFilter implements Filter {
                         if (!(user != null && user.getUid() > 0) && !XUtil.isEmpty(jwtRefreshToken)) {// login master
                             String jwtToken = refreshAccessToken(request, jwtRefreshToken);
                             if (!XUtil.isEmpty(jwtToken)) {
-                                request.getSession().setAttribute("jwtToken", jwtToken);
+
+                                session.setAttribute("jwtToken", jwtToken);
                                 User loggedUser = initSessionFromJwt(jwtToken);
-                                System.err.println("======traceId=" + traceId + " user==null and refreshtoken exists loggedUser = " + loggedUser+" destinyRequest=" + destinyRequest);
+                                System.err.println("======traceId=" + traceId + " jwt saved - user==null and refreshtoken exists loggedUser = " + loggedUser+" destinyRequest=" + destinyRequest);
                                 if (loggedUser != null) {
                                     if (!XUtil.isEmpty(destinyRequest)) {
                                         if (redirectToSlave(
