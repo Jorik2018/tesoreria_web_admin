@@ -222,15 +222,12 @@ public class RewriteFilter implements Filter {
 
     private User initSessionFromJwt(String jwt) {
         Integer uid = getUidFromJwt(jwt);
-
         if (uid == null) {
             return null;
         }
-
         try {
             UserFacadeLocal userFacade = (UserFacadeLocal) new InitialContext()
                     .lookup("java:module/UserFacade");
-
             return userFacade.initSession(uid);
 
         } catch (Exception e) {
@@ -305,7 +302,7 @@ public class RewriteFilter implements Filter {
                 }
                 String URI = requestURI.toLowerCase();
                 if (isStaticResource(URI)) {
-                    request.setAttribute(X.NO_LOAD, Boolean.valueOf(true));
+                    request.setAttribute(X.NO_LOAD, true);
                     String destinyRequest = request.getParameter("destiny");
                     if (destinyRequest != null)
                         session.setAttribute("_DESTINY", destinyRequest);
@@ -344,6 +341,7 @@ public class RewriteFilter implements Filter {
                 if (request.getAttribute("URL_ENTER") == null && req.getAttribute(X.NO_LOAD) == null) {
                     request.setAttribute("URL_ENTER", requestURI);
                 }
+
                 if (!X.installed) {
                     SystemFacadeLocal systemFacade = lookupSystemFacadeLocal();
                     Map m = systemFacade.getConfig("SYSTEM");
@@ -361,6 +359,9 @@ public class RewriteFilter implements Filter {
                         }
                     }
                 }
+
+                String jwtRefreshToken = getCookieValue(request, "refreshToken");
+
                 if (requestURI.contains("/api/") || "api"
                         .equals(q[0]) || (q.length > 1 && "api".equals(q[1]))) {// asegurar apis
 
@@ -369,6 +370,7 @@ public class RewriteFilter implements Filter {
                     chain.doFilter(request, (ServletResponse) response);
                     return false;
                 }
+
                 if (request.getAttribute("TEMPLATE") == null) {
                     if (request.getParameter("modal") != null) {
                         request.setAttribute(X.TEMPLATE, "/modal.xhtml");
@@ -377,10 +379,10 @@ public class RewriteFilter implements Filter {
                                 ("admin".equals(q[0])) ? DEFAULT_TEMPLATE : "/nodeTemplate.xhtml");
                     }
                 }
+
                 System.out.println(traceId + " 7 " + user + " req.getAttribute(X.NO_LOAD)  =>"
                         + request.getAttribute(X.NO_LOAD) + " requestURI=" + requestURI);
 
-                String jwtRefreshToken = getCookieValue(request, "refreshToken");
                 if (user != null
                         || jwtRefreshToken != null
                         || requestURI.startsWith("login")
@@ -404,58 +406,36 @@ public class RewriteFilter implements Filter {
                                 return false;
                             }
                         }
-                        if (!(user != null && user.getUid() > 0) && !XUtil.isEmpty(jwtRefreshToken)) {// login master
+
+                        // Without user and with refreshToken, try to refresh access token
+                        if (!(user != null && user.getUid() > 0) && !XUtil.isEmpty(jwtRefreshToken)) {
                             String jwtToken = refreshAccessToken(request, jwtRefreshToken);
+                            User loggedUser = null;
+
                             if (!XUtil.isEmpty(jwtToken)) {
+                                loggedUser = initSessionFromJwt(jwtToken);
+                            }
 
-                                User loggedUser = initSessionFromJwt(jwtToken);
-                                System.err.println("======traceId=" + traceId
-                                        + " Z1000 user== and refreshtoken exists loggedUser = " + loggedUser
-                                        + " destinyRequest=" + destinyRequest);
-                                if (loggedUser != null) {
-                                    request.getSession().setAttribute("jwtToken", jwtToken);
-                                    System.err.println("======traceId=" + traceId
-                                            + " Z1001 jwt saved - user== and refreshtoken exists requestURI = "
-                                            + requestURI + " useModal=" + useModal);
-
-                                    if (!XUtil.isEmpty(destinyRequest)) {
-                                        if (redirectToSlave(
-                                                request,
-                                                response,
-                                                destinyRequest,
-                                                loggedUser)) {
-                                            return false;
-                                        }
-                                        response.sendRedirect("/" + destinyRequest);
-                                    } else {
-                                        // response.sendRedirect("/" + requestURI);
-                                        return true;
-                                    }
+                            if (loggedUser != null) {
+                                if (!XUtil.isEmpty(destinyRequest)) {
+                                    response.sendRedirect("/" + destinyRequest);
                                     return false;
                                 }
-                            }
-                            // mostrar mensaje de error de login
-                            if (!XUtil.isEmpty(destinyRequest)) {
-                                response.sendRedirect(
-                                        "/login/?destiny=" + destinyRequest);
+
+                                // Login correcto y sin destiny:
+                                // continúa el flujo después de este bloque
                             } else {
-                                response.sendRedirect("/login/");
+                                // Mostrar mensaje de error de login
+                                if (!XUtil.isEmpty(destinyRequest)) {
+                                    response.sendRedirect("/login/?destiny=" + destinyRequest);
+                                } else {
+                                    response.sendRedirect("/login/");
+                                }
+                                return false;
                             }
-                            return false;
                         }
 
-                        if (requestURI.equals("login") && redirectToSlave(
-                                request,
-                                response,
-                                destinyRequest,
-                                user)) {
-                            return false;
-                        }
-                        if (destinyRequest != null) {
-                            session.setAttribute("_DESTINY", destinyRequest);
-                        }
                         if (request.getAttribute("noload") != null) {
-                            System.out.println("no load");
                             return true;
                         }
 
@@ -464,27 +444,11 @@ public class RewriteFilter implements Filter {
                             String access_token = (String) session.getAttribute("jwtToken");
                             System.out.println("traceId=" + traceId + " access_token=" + access_token + " user=" + user
                                     + " checkedAccess=" + req.getAttribute("-checkedAccess"));
-                            if (access_token != null) {
-                                Object modal = req.getParameter("modal");
-                                if (modal != null)
-                                    requestURI = requestURI + "?modal";
-                                if (user == null) {
-                                    /*
-                                     * Object uid = req.getParameter("uid");
-                                     * if (uid == null) {
-                                     * ((UserFacadeLocal) (new InitialContext()).lookup("java:module/UserFacade"))
-                                     * .initSession(Integer.valueOf(XUtil.intValue(access_token)));
-                                     * response.sendRedirect("/" + requestURI);
-                                     * return false;
-                                     * }
-                                     */
-                                }
-                                // response.sendRedirect("/" + requestURI);
-                                return true;
-                            }
-                            if (req.getAttribute("-checkedAccess") == null) {
+                            if (req.getAttribute("-checkedAccess") == null) {// verificar si tiene accesso a pagina
                                 Object o = null;
                                 try {
+
+                                    System.out.println("traceId=" + traceId + " loadingMENU=");
                                     o = ((MenuFacadeLocal) (new InitialContext()).lookup("java:module/MenuFacade"))
                                             .accessMenu(q);
                                 } catch (Exception e) {
@@ -493,57 +457,17 @@ public class RewriteFilter implements Filter {
                                 if (o instanceof Exception) {
                                     ((Exception) o).printStackTrace();
                                     request.setAttribute("MSG", ((Exception) o).getMessage());
-                                    req.setAttribute("noload", Boolean.valueOf(true));
+                                    req.setAttribute("noload", true);
                                     request.getRequestDispatcher("/faces/common/Page.xhtml").forward(req, res);
                                 }
-                                req.setAttribute("-checkedAccess", Boolean.valueOf(true));
+                                req.setAttribute("-checkedAccess", true);
                             }
                         } else if (requestURI.endsWith(".xhtml")) {
-                            req.setAttribute("noload", Boolean.valueOf(true));
+                            req.setAttribute("noload", true);
                         } else {
-                            req.setAttribute("-checkedAccess", Boolean.valueOf(true));
+                            req.setAttribute("-checkedAccess", true);
                         }
                     }
-                } else if (req.getAttribute("-checkedAccess") == null) {
-                    if ("faces/".equals(requestURI))
-                        requestURI = null;
-                    String access_token = req.getParameter("access_token");
-                    System.out.println("context-path=" + request.getContextPath());
-                    String mainSessionId = (String) session.getAttribute(MASTER_SESSION_ID);
-                    if (access_token != null && user == null) {
-                        String[] tr = access_token.split("[.]");
-                        String sessionId = tr[2];
-                        System.out.println("Preguntando al main si es valido el id=" + sessionId);
-                        int uid = ((Integer) this.client.target("http://localhost:" + X.getRequest().getLocalPort()
-                                + "/api/session/logged/" + sessionId).request().get(Integer.class)).intValue();
-                        if (uid > -1) {
-                            System.out.println("Es valido se inicia session");
-                            user = ((UserFacadeLocal) (new InitialContext()).lookup("java:module/UserFacade"))
-                                    .initSession(Integer.valueOf(uid));
-                            if (user != null) {
-                                session.setAttribute(MASTER_SESSION_ID, sessionId);
-                                System.out.println("session.getId()=" + session.getId() + " guarda mainSessionId="
-                                        + mainSessionId + " USER INICIADO=" + user + " en contextPath=" + contextPath
-                                        + " Despues se redirige a /" + requestURI);
-                                response.sendRedirect("/" + requestURI);
-                                return false;
-                            }
-                        } else {
-                            System.out.println("fallo valido se inicia session " + sessionId);
-                        }
-                    } else if (user != null) {
-                        mainSessionId = (String) session.getAttribute(MASTER_SESSION_ID);
-                        int uid = ((Integer) this.client.target("http://localhost:" + X.getRequest().getLocalPort()
-                                + "/api/session/logged/" + mainSessionId).request().get(Integer.class)).intValue();
-                        if (uid <= 0) {
-                            ((UserFacadeLocal) (new InitialContext()).lookup("java:module/UserFacade")).logout();
-                            response.sendRedirect("/" + requestURI);
-                            return false;
-                        }
-                    }
-                    session.setAttribute("_DESTINY", requestURI);
-                    response.sendRedirect("/login/?destiny=" + requestURI);
-                    return false;
                 }
             }
         } catch (Exception e) {
@@ -669,7 +593,7 @@ public class RewriteFilter implements Filter {
                 case VALUE_STRING:
                     m.put(keyName, parser.getString());
                 case VALUE_TRUE:
-                    m.put(keyName, Boolean.valueOf(true));
+                    m.put(keyName, true);
                 case VALUE_FALSE:
                     m.put(keyName, Boolean.valueOf(false));
                 case KEY_NAME:
