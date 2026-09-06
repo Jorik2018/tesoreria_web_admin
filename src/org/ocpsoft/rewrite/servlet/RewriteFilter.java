@@ -408,6 +408,7 @@ public class RewriteFilter implements Filter {
                             if (!XUtil.isEmpty(jwtToken)) {
                                 request.setAttribute("jwtToken", jwtToken);
                                 User loggedUser = initSessionFromJwt(jwtToken);
+                                System.err.println("======traceId=" + traceId + " loggedUser = " + loggedUser);
                                 if (loggedUser != null) {
                                     if (!XUtil.isEmpty(destinyRequest)) {
                                         if (redirectToSlave(
