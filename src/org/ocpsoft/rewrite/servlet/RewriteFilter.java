@@ -463,8 +463,8 @@ public class RewriteFilter implements Filter {
                                         return false;
                                     }
                                 }
-                                response.sendRedirect("/" + requestURI);
-                                return false;
+                                //response.sendRedirect("/" + requestURI);
+                                return true;
                             }
                             if (req.getAttribute("-checkedAccess") == null) {
                                 Object o = null;
