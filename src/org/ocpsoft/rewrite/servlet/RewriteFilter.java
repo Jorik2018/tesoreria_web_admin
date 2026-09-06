@@ -339,7 +339,7 @@ public class RewriteFilter implements Filter {
                     return false;
                 }
                 if (request.getAttribute(X.NO_LOAD) != null) {
-                    chain.doFilter(req, (ServletResponse) response);
+                    chain.doFilter(request, (ServletResponse) response);
                     return false;
                 }
 
@@ -367,7 +367,7 @@ public class RewriteFilter implements Filter {
                         .equals(q[0]) || (q.length > 1 && "api".equals(q[1]))) {
                     response.addHeader("Access-Control-Allow-Origin", "*");
                     response.addHeader("Access-Control-Allow-Methods", "GET, OPTIONS, HEAD, PUT, POST");
-                    chain.doFilter(req, (ServletResponse) response);
+                    chain.doFilter(request, (ServletResponse) response);
                     return false;
                 }
                 if (request.getAttribute("TEMPLATE") == null) {
@@ -380,9 +380,6 @@ public class RewriteFilter implements Filter {
                 }
 
                 String jwtRefreshToken = getCookieValue(request, "refreshToken");
-
-                System.out.println("======traceId=" + traceId + " user = " + user + " URI=" + requestURI
-                        + " jwtRefreshToken=" + jwtRefreshToken);
                 if (user != null
                         || jwtRefreshToken != null
                         || requestURI.startsWith("login")
@@ -393,26 +390,19 @@ public class RewriteFilter implements Filter {
                     {
                         X.DEBUG = true;
                         String destinyRequest = req.getParameter("destiny");
-                        System.out.println("======traceId=" + traceId + " destinyRequest = " + destinyRequest);
                         if (user != null && !contextPath.equals("")) {// verificar master session valida (mejorar usando
-                                                                      // api/auth)
-                            String mainSessionId = (String) session.getAttribute(MASTER_SESSION_ID);
-                            int uid = (mainSessionId != null)
-                                    ? ((Integer) this.client.target("http://localhost:" + X.getRequest().getLocalPort()
-                                            + "/api/session/logged/" + mainSessionId).request().get(Integer.class))
-                                            .intValue()
-                                    : 0;
-                            if (uid <= 0) {
+                            Integer uid = getUidFromJwt(request.getAttribute("jwtToken"));// api/auth)
+                            if (uid == null || uid <= 0) {
                                 ((UserFacadeLocal) (new InitialContext()).lookup("java:module/UserFacade")).logout();
                                 response.sendRedirect("/" + requestURI);
                                 return false;
                             }
                         }
                         if (!(user != null && user.getUid() > 0) && !XUtil.isEmpty(jwtRefreshToken)) {// login master
-                            System.out.println("======traceId=" + traceId + " refreshAccessToken = " + jwtRefreshToken);
                             String jwtToken = refreshAccessToken(request, jwtRefreshToken);
                             System.out.println("======traceId=" + traceId + " jwtToken = " + jwtToken);
                             if (!XUtil.isEmpty(jwtToken)) {
+                                request.setAttribute("jwtToken", jwtToken);
                                 User loggedUser = initSessionFromJwt(jwtToken);
                                 if (loggedUser != null) {
                                     if (!XUtil.isEmpty(destinyRequest)) {
@@ -433,7 +423,7 @@ public class RewriteFilter implements Filter {
                             // mostrar mensaje de error de login
                             if (!XUtil.isEmpty(destinyRequest)) {
                                 response.sendRedirect(
-                                        "/login?destiny=" + destinyRequest);
+                                        "/login/?destiny=" + destinyRequest);
                             } else {
                                 response.sendRedirect("/login");
                             }
