@@ -384,7 +384,7 @@ public class RewriteFilter implements Filter {
                 boolean useModal = req.getParameter("modal") != null;
                 boolean isLoged = user != null && user.getUid() > 0;
                 if (!isLoged && XUtil.isEmpty(jwtRefreshToken)) {
-                    redirectToLogin(response, destinyRequest);
+                    redirectToLogin(response, requestURI,destinyRequest);
                     return false;
                 }
 
@@ -415,7 +415,7 @@ public class RewriteFilter implements Filter {
                             : null;
 
                     if (loggedUser == null) {
-                        redirectToLogin(response, destinyRequest);
+                        redirectToLogin(response, requestURI,destinyRequest);
                         return false;
                     }
 
@@ -466,12 +466,13 @@ public class RewriteFilter implements Filter {
 
     private void redirectToLogin(
             HttpServletResponse response,
+            String requestURI,
             String destinyRequest) throws IOException {
 
         if (!XUtil.isEmpty(destinyRequest)) {
             response.sendRedirect("/login/?destiny=" + destinyRequest);
         } else {
-            response.sendRedirect("/login/");
+            response.sendRedirect("/login/?destiny=" + requestURI);
         }
     }
 
