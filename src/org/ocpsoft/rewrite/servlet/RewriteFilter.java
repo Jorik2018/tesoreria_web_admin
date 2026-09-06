@@ -393,6 +393,10 @@ public class RewriteFilter implements Filter {
                 String jwtToken = !XUtil.isEmpty(jwtRefreshToken)
                         ? refreshAccessToken(request, jwtRefreshToken)
                         : null;
+                System.out.println(
+                        "TRACE[" + traceId + "] requestURI=" + requestURI + " destinyRequest=" + destinyRequest
+                                + " isLoged=" + isLoged + " jwtRefreshToken=" + !XUtil.isEmpty(jwtRefreshToken)
+                                + " jwtToken=" + !XUtil.isEmpty(jwtToken));
 
                 if (isLoged) {
                     Integer uid = getUidFromJwt(jwtToken);
